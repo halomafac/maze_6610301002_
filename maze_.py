@@ -1,6 +1,7 @@
 import os
 import keyboard
 import time
+from collections import deque
 
 class maze:
     def __init__(self) -> None:
@@ -90,6 +91,47 @@ class maze:
                 self.printEND()
                 return False
         return True
+    
+    def find_path_to_end(self):
+        visited = set()
+        queue = deque([(self.ply.y, self.ply.x, [])])
+
+        while queue:
+            y, x, path = queue.popleft()
+            if (y, x) in visited:
+                continue
+
+            visited.add((y, x))
+
+            if (y, x) == (self.end.y, self.end.x):
+                return path
+
+            for dy, dx in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                next_y, next_x = y + dy, x + dx
+
+                if not self.isInBound(next_y, next_x):
+                    continue
+
+                if self.maze[next_y][next_x] in ['X', 'P']:
+                    continue
+
+                new_path = path + [(next_y, next_x)]
+                queue.append((next_y, next_x, new_path))
+
+        return None
+    
+    def auto_move_to_end(self):
+        path = self.find_path_to_end()
+        if path:
+            for y, x in path:
+                self.maze[self.ply.y][self.ply.x] = " "
+                self.ply = pos(y, x)
+                self.maze[y][x] = "P"
+                time.sleep(0.25)
+                self.print()
+                if (y, x) == (self.end.y, self.end.x):
+                    self.printEND()
+                    break
 
 class pos:
     def __init__(self) -> None:
@@ -100,51 +142,14 @@ class pos:
         self.y = y
         self.x = x
 
-    def find_path(self):
-        visited = [[False for _ in range(len(self.maze[0]))] for _ in range(len(self.maze))]
-        stack = [(self.ply.y, self.ply.x)]
-
-        while stack:
-            y, x = stack.pop()
-            if visited[y][x]:
-                continue
-
-            visited[y][x] = True
-            self.maze[y][x] = "."
-
-            # Check if we reached the exit
-            if (y, x) == (self.end.y, self.end.x):
-                return True
-
-            # Add neighboring cells to the stack
-            for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                ny, nx = y + dy, x + dx
-                if self.isInBound(ny, nx) and not visited[ny][nx] and self.maze[ny][nx] != "X":
-                    stack.append((ny, nx))
-
-            # Display the current state
-            self.print()
-            time.sleep(0.1)
-
-        return False
-
-    def auto_move(self):
-        if self.find_path():
-            print("Path found!")
-            self.printEND()
-        else:
-            print("No path found!")
-
 if __name__ == '__main__':
+
     m = maze()
     m.print()
 
     while True:
-        if keyboard.is_pressed("q"):
+        if keyboard.is_pressed("q"): # click q to exit program
             print("Quit Program")
-            break
-        if keyboard.is_pressed("o"):
-            m.auto_move()
             break
         if keyboard.is_pressed("w"):
             if m.move_up():
@@ -166,3 +171,7 @@ if __name__ == '__main__':
                 m.print()
             else:
                 break
+
+        if keyboard.is_pressed("p"): # click p to auto walk
+            m.auto_move_to_end()
+            break
